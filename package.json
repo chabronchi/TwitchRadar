@@ -11,6 +11,6 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "tmi.js": "^1.8.5"
+    "node-fetch": "^2.6.1"
   }
 }

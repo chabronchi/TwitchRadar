@@ -1,6 +1,4 @@
 
-import tmi from 'tmi.js';
-
 export default async function handler(req, res) {
   const { friends, channels } = req.query;
 
@@ -14,33 +12,30 @@ export default async function handler(req, res) {
   const found = {};
   friendList.forEach(f => found[f] = []);
 
-  const client = new tmi.Client({
-    connection: { reconnect: true },
-    channels: channelList,
-  });
+  const fetch = (await import('node-fetch')).default;
 
-  await client.connect();
+  for (const channel of channelList) {
+    try {
+      const response = await fetch(`https://tmi.twitch.tv/group/user/${channel}/chatters`);
+      const data = await response.json();
+      const chatters = [
+        ...(data.chatters?.viewers || []),
+        ...(data.chatters?.moderators || []),
+        ...(data.chatters?.vips || []),
+        ...(data.chatters?.staff || []),
+        ...(data.chatters?.admins || []),
+        ...(data.chatters?.global_mods || [])
+      ];
 
-  const checkUsersInChat = async () => {
-    for (const channel of channelList) {
-      try {
-        const users = await client.api.callApi({
-          url: \`https://tmi.twitch.tv/group/user/\${channel}/chatters\`,
-        });
-        const chatters = users.chatters.viewers.concat(users.chatters.moderators || []);
-        friendList.forEach(f => {
-          if (chatters.includes(f)) {
-            found[f].push(channel);
-          }
-        });
-      } catch (e) {
-        console.error('Erreur pour le channel', channel, e);
-      }
+      friendList.forEach(f => {
+        if (chatters.includes(f)) {
+          found[f].push(channel);
+        }
+      });
+    } catch (error) {
+      console.error(`Erreur lors du fetch pour ${channel}:`, error);
     }
-  };
-
-  await checkUsersInChat();
-  await client.disconnect();
+  }
 
   res.status(200).json(found);
 }
