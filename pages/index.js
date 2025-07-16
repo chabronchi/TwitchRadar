@@ -1,35 +1,50 @@
-
 import { useState } from 'react';
 
 export default function Home() {
   const [friends, setFriends] = useState('');
   const [channels, setChannels] = useState('');
-  const [results, setResults] = useState(null);
+  const [result, setResult] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const checkChats = async () => {
+  const handleCheck = async () => {
     setLoading(true);
+    setResult('');
     const res = await fetch(`/api/check?friends=${friends}&channels=${channels}`);
     const data = await res.json();
-    setResults(data);
+
+    if (data.found) {
+      setResult(Object.entries(data.found)
+        .map(([f, chans]) => chans.length ? `${f} est dans : ${chans.join(', ')}` : `${f} n’est pas en ligne`)
+        .join('\n'));
+    } else {
+      setResult('Erreur ou pas de données trouvées');
+    }
+
     setLoading(false);
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: 'Arial' }}>
-      <h1>Twitch Friend Tracker 👀</h1>
-      <label>Amis (séparés par des virgules):</label><br />
-      <input style={{ width: '100%', marginBottom: 10 }} value={friends} onChange={e => setFriends(e.target.value)} /><br />
-      <label>Streamers (séparés par des virgules):</label><br />
-      <input style={{ width: '100%', marginBottom: 10 }} value={channels} onChange={e => setChannels(e.target.value)} /><br />
-      <button onClick={checkChats}>Scanner</button>
-      {loading && <p>⏳ Scan en cours...</p>}
-      {results && (
-        <div style={{ marginTop: 20 }}>
-          <h2>Résultats :</h2>
-          <pre>{JSON.stringify(results, null, 2)}</pre>
-        </div>
-      )}
-    </div>
+    <main style={{ padding: 40, fontFamily: 'sans-serif' }}>
+      <h1>🔍 Scanner les tchats Twitch</h1>
+      <p>Entre les pseudos d’amis et les chaînes Twitch à scanner.</p>
+
+      <div style={{ marginBottom: 20 }}>
+        <label>👥 Amis (séparés par des virgules)</label><br />
+        <input value={friends} onChange={e => setFriends(e.target.value)} style={{ width: '100%' }} />
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <label>📺 Chaînes (séparées par des virgules)</label><br />
+        <input value={channels} onChange={e => setChannels(e.target.value)} style={{ width: '100%' }} />
+      </div>
+
+      <button onClick={handleCheck} style={{ padding: '10px 20px' }}>
+        Lancer le scan
+      </button>
+
+      <div style={{ marginTop: 30, whiteSpace: 'pre-wrap' }}>
+        {loading ? '🌀 Scan en cours...' : result}
+      </div>
+    </main>
   );
 }
