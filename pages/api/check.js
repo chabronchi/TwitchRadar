@@ -18,6 +18,8 @@ export default async function handler(req, res) {
     try {
       const response = await fetch(`https://tmi.twitch.tv/group/user/${channel}/chatters`);
       const data = await response.json();
+      console.log(`Data for ${channel}:`, data);
+
       const chatters = [
         ...(data.chatters?.viewers || []),
         ...(data.chatters?.moderators || []),
@@ -37,5 +39,5 @@ export default async function handler(req, res) {
     }
   }
 
-  res.status(200).json(found);
+  res.status(200).json({ status: "ok", found });
 }
