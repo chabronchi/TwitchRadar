@@ -1,29 +1,41 @@
-for (const channel of channelList) {
-  try {
-    const response = await fetch(`https://tmi.twitch.tv/group/user/${channel}/chatters`);
+export default async function handler(req, res) {
+  const { friends = '', channels = '' } = req.query;
 
-    if (!response.ok) {
-      console.warn(`Chaîne "${channel}" inaccessible (status ${response.status})`);
-      continue; // passe à la chaîne suivante
-    }
+  const friendList = friends.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const channelList = channels.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
-    const data = await response.json();
+  const found = {};
+  friendList.forEach(f => found[f] = []);
 
-    const chatters = [
-      ...(data.chatters?.viewers || []),
-      ...(data.chatters?.moderators || []),
-      ...(data.chatters?.vips || []),
-      ...(data.chatters?.staff || []),
-      ...(data.chatters?.admins || []),
-      ...(data.chatters?.global_mods || [])
-    ];
+  for (const channel of channelList) {
+    try {
+      const response = await fetch(`https://tmi.twitch.tv/group/user/${channel}/chatters`);
 
-    friendList.forEach(f => {
-      if (chatters.includes(f)) {
-        found[f].push(channel);
+      if (!response.ok) {
+        console.warn(`Chaîne "${channel}" inaccessible (status ${response.status})`);
+        continue;
       }
-    });
-  } catch (error) {
-    console.error(`Erreur lors du fetch pour ${channel}:`, error);
+
+      const data = await response.json();
+
+      const chatters = [
+        ...(data.chatters?.viewers || []),
+        ...(data.chatters?.moderators || []),
+        ...(data.chatters?.vips || []),
+        ...(data.chatters?.staff || []),
+        ...(data.chatters?.admins || []),
+        ...(data.chatters?.global_mods || [])
+      ];
+
+      friendList.forEach(friend => {
+        if (chatters.includes(friend)) {
+          found[friend].push(channel);
+        }
+      });
+    } catch (error) {
+      console.error(`Erreur lors du fetch pour ${channel}:`, error);
+    }
   }
+
+  res.status(200).json({ status: 'ok', found });
 }
